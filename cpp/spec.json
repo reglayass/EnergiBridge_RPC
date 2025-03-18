@@ -1,0 +1,16 @@
+[
+    {
+        "name": "start_measure",
+        "params": {
+            "function_name": "example_func"
+        },
+        "returns": true
+    },
+    {
+        "name": "stop_measure",
+        "params": {
+            "function_name": "example_func"
+        },
+        "returns": true
+    }
+]

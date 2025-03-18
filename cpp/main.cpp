@@ -11,6 +11,10 @@
 #include <cstdio>
 #include <cstring>
 #include <sys/wait.h>
+#include <fstream>
+#include <sstream>
+#include <vector>
+#include <map>
 
 using namespace jsonrpc;
 
@@ -19,7 +23,7 @@ public:
     EnergiBridge_RPC(AbstractServerConnector &connector, serverVersion_t type);
 
     virtual bool start_measure(const std::string& function_name);
-    virtual bool stop_measure(const std::string& function_name);
+    virtual Json::Value stop_measure(const std::string& function_name);
 
 private:
     pid_t process_pid = -1; // Process of Energibridge
@@ -47,23 +51,72 @@ bool EnergiBridge_RPC::start_measure(const std::string &function_name) {
     return false;
 }
 
-bool EnergiBridge_RPC::stop_measure(const std::string& function_name) {
+Json::Value read_csv(const char* filename) {
+    std::ifstream file(filename);
+    Json::Value jsonArray(Json::arrayValue);
+
+    if (!file.is_open()) {
+        std::cerr << "Error: Could not open file " << filename << std::endl;
+        return jsonArray; // Return empty array on failure
+    }
+
+    std::string line;
+    std::vector<std::string> headers;
+
+    // Read headers (first line)
+    if (std::getline(file, line)) {
+        std::stringstream ss(line);
+        std::string column;
+        while (std::getline(ss, column, ',')) {
+            headers.push_back(column);
+        }
+    }
+
+    // Read data rows
+    while (std::getline(file, line)) {
+        std::stringstream ss(line);
+        std::string cell;
+        Json::Value jsonObject;
+        size_t colIndex = 0;
+
+        while (std::getline(ss, cell, ',')) {
+            if (colIndex < headers.size()) {
+                jsonObject[headers[colIndex]] = std::stod(cell);
+            }
+            colIndex++;
+        }
+
+        jsonArray.append(jsonObject);
+    }
+
+    file.close();
+    std::remove(filename);
+    return jsonArray;
+}
+
+Json::Value EnergiBridge_RPC::stop_measure(const std::string& function_name) {
+    Json::Value response(Json::arrayValue);
+
     if (process_pid > 0) {
         std::cout << "Stopping measurement: " << function_name << " (PID: " << process_pid << ")" << std::endl;
         if (kill(process_pid, SIGTERM) == 0) {
             std::cout << "Process terminated." << std::endl;
             process_pid = -1;  // Reset PID
-            return true;
+
+            // Read the results CSV file
+            // convert to JSON array of objects
+            return read_csv("results.csv");
         } else {
             std::cerr << "Failed to terminate process!" << std::endl;
-            return false;
+
+            return Json::Value (Json::arrayValue);
         }
     } else {
         std::cerr << "No process running!" << std::endl;
-        return false;
+        return Json::Value (Json::arrayValue);
     }
 
-    return true;
+    return Json::Value (Json::arrayValue);
 }
 
 int main() {

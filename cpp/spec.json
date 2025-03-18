@@ -11,6 +11,8 @@
         "params": {
             "function_name": "example_func"
         },
-        "returns": true
+        "returns": [
+            { "key": "value" }
+        ]
     }
 ]

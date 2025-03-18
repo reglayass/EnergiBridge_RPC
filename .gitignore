@@ -1,1 +1,5 @@
 ts/node_modules/*
+
+cpp/build/CMakeFiles
+cpp/build/cmake_install.cmake
+cpp/build/CMakeCache.txt

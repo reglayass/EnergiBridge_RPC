@@ -18,13 +18,5 @@ make
 Now you can run the server like so:
 
 ```
-sudo ./build/bin/EnergiBridge_RPC
+./build/bin/EnergiBridge_RPC
 ```
-
-## Typescript Version
-You need to install a couple of packages before running.
-```
-cd /ts
-npm install
-```
-To start the server run `npx ts-node server.ts`. To run the client, execute in a separate terminal `npx ts-node client.ts`.

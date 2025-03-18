@@ -31,11 +31,3 @@ Now you can run the server like so:
 ```
 ./build/bin/EnergiBridge
 ```
-
-## Typescript Version
-You need to install a couple of packages before running.
-```
-cd /ts
-npm install
-```
-To start the server run `npx ts-node server.ts`. To run the client, execute in a separate terminal `npx ts-node client.ts`.

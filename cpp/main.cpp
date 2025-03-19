@@ -34,11 +34,17 @@ EnergiBridge_RPC::EnergiBridge_RPC(AbstractServerConnector &connector, serverVer
 bool EnergiBridge_RPC::start_measure(const std::string &function_name) {
     std::cout << "Starting measurement: " << function_name << std::endl;
 
+    char results_filename[50];
+    sprintf(results_filename, "results_%s.csv", function_name);
+
+    char output[50];
+    sprintf(output, "--output=%s", results_filename);
+
     // Fork the process
     process_pid = fork();
     if (process_pid == 0) {
         // Child process: Replace with your command
-        execlp("./energibridge", "energibridge", "--output=results.csv", "sleep", "infinity", (char *)NULL);
+        execlp("./energibridge", "energibridge", output, "sleep", "infinity", (char *)NULL);
         exit(1);  // If exec fails
     } else if (process_pid > 0) {
         std::cout << "Started process with PID: " << process_pid << std::endl;
@@ -105,7 +111,10 @@ Json::Value EnergiBridge_RPC::stop_measure(const std::string& function_name) {
 
             // Read the results CSV file
             // convert to JSON array of objects
-            return read_csv("results.csv");
+            char results_filename[50];
+            sprintf(results_filename, "results_%s.csv", function_name);
+
+            return read_csv(results_filename);
         } else {
             std::cerr << "Failed to terminate process!" << std::endl;
 

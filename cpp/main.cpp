@@ -2,6 +2,7 @@
 
 #include "gen/abstractstubserver.h"
 #include <jsonrpccpp/server/connectors/httpserver.h>
+#include <jsonrpccpp/common/exception.h>
 #include <stdio.h>
 
 #include <cstdlib>
@@ -50,8 +51,7 @@ bool EnergiBridge_RPC::start_measure(const std::string &function_name) {
         std::cout << "Started process with PID: " << process_pid << std::endl;
         return true;
     } else {
-        std::cerr << "Failed to start process!" << std::endl;
-        return false;
+        throw JsonRpcException(-32001, "Failed to start the process!");
     }
 
     return false;
@@ -116,13 +116,10 @@ Json::Value EnergiBridge_RPC::stop_measure(const std::string& function_name) {
 
             return read_csv(results_filename);
         } else {
-            std::cerr << "Failed to terminate process!" << std::endl;
-
-            return Json::Value (Json::arrayValue);
+            throw JsonRpcException(-32001, "Failed to terminate process!");
         }
     } else {
-        std::cerr << "No process running!" << std::endl;
-        return Json::Value (Json::arrayValue);
+        throw JsonRpcException(-32001, "No process running!");
     }
 
     return Json::Value (Json::arrayValue);

@@ -31,3 +31,5 @@ build/
 dataframe.csv
 
 pyvenv.cfg
+energy_results/
+*custom_dir*

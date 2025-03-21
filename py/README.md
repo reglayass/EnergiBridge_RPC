@@ -4,12 +4,22 @@ A Python package to measure function execution using JSON-RPC.
 
 ## Installation
 
+Create a virtual environment:
+```sh
+python -m venv venv
+```
+
+Activate the virtual environment:
+```sh   
+source venv/bin/activate
+```
+
 Clone the repository and install dependencies:
 ```sh
 pip install -r requirements.txt
 ```
 
-Or install via pip:
+Or install via pip as a package:
 ```sh
 pip install .
 ```
@@ -20,17 +30,18 @@ pip install .
 
 ```python
 from rpc_measure.decorator import configure_rpc
+from pathlib import Path
 
-configure_rpc("URL")
+configure_rpc(url="URL", output_path=Path("path/to/file"))
 ```
 
 ### Using the Decorator
 
 ```python
-from rpc_measure.decorator import rpc_measure
+from rpc_measure.decorator import energibridge_rpc
 
 
-@rpc_measure(pid=1234, app_name="MyApp")
+@energibridge_rpc(enabled=True, port=1234)
 def my_function():
     print("Running...")
     return "Done"
@@ -38,6 +49,7 @@ def my_function():
 
 print(my_function())
 ```
+If enabled, the energy measurement will be saved as a csv at the specified output path (`./energy_results/` by default).
 
 ## Running Tests
 

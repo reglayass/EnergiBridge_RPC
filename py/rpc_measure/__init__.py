@@ -1,3 +1,3 @@
-from .decorator import rpc_measure, configure_rpc
+from .decorator import energibridge_rpc, configure_rpc
 
-__all__ = ["rpc_measure", "configure_rpc"]
+__all__ = ["energibridge_rpc", "configure_rpc"]

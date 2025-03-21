@@ -1,0 +1,33 @@
+
+# Python cache files
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# virtual environments
+venv/
+.env/
+bin/
+include/
+lib/
+
+
+# IDE files
+.vscode/
+.idea/
+*.iml
+
+# test and log files
+*.log
+*.pytest_cache/
+
+# build artifacts
+dist/
+build/
+*.egg-info/
+
+# dataframes
+dataframe.csv
+
+pyvenv.cfg

@@ -32,7 +32,15 @@ private:
 
 EnergiBridge_RPC::EnergiBridge_RPC(AbstractServerConnector &connector, serverVersion_t type) : AbstractStubServer(connector, type) {}
 
+bool is_energibridge_running() {
+    return system("pgrep energibridge > /dev/null");
+}
+
 bool EnergiBridge_RPC::start_measure(const std::string &function_name) {
+    if (is_energibridge_running()) {
+        throw JsonRpcException(-32001, "There is already a measurement running!");
+    }
+
     std::cout << "Starting measurement: " << function_name << std::endl;
 
     char results_filename[50];

@@ -10,7 +10,7 @@ RPC_URL = f"http://localhost:5000/jsonrpc"
 
 
 def configure_rpc(url: str):
-    """Configure the RPC URL with a custom port."""
+    """Configure the RPC URL with a custom value."""
     global RPC_URL
     RPC_URL = url
 

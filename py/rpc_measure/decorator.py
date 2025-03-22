@@ -15,9 +15,10 @@ RPC_URL: str = "http://localhost"
 PID: int = -1
 OUTPUT_PATH: Path = Path(__file__).parent.parent / "energy_results"
 PORT: int = 8095
+EXP: str = "nonservice"
 
 
-def energibridge_rpc(enabled=True, port=8095) -> Callable:
+def energibridge_rpc(port=8095, exp="nonservice") -> Callable:
     """Decorator to measure function execution using JSON-RPC."""
     currently_measuring = set()
 
@@ -33,17 +34,17 @@ def energibridge_rpc(enabled=True, port=8095) -> Callable:
 
         @functools.wraps(func)
         def sync_wrapper(*args, **kwargs):
-            if func.__name__ in currently_measuring or not enabled:
+            if func.__name__ in currently_measuring or exp == EXP:
                 return func(*args, **kwargs)
             currently_measuring.add(func.__name__)
-            return _execute_rpc_measure(func, args, kwargs, currently_measuring)
+            return _execute_rpc_measure(func, args, kwargs, currently_measuring, exp)
 
         @functools.wraps(func)
         async def async_wrapper(*args, **kwargs):
-            if func.__name__ in currently_measuring or not enabled:
+            if func.__name__ in currently_measuring or exp == EXP:
                 return await func(*args, **kwargs)
             currently_measuring.add(func.__name__)
-            return await _execute_rpc_measure_async(func, args, kwargs, currently_measuring)
+            return await _execute_rpc_measure_async(func, args, kwargs, currently_measuring, exp)
 
         return async_wrapper if is_async else sync_wrapper
 
@@ -57,7 +58,7 @@ def configure_rpc(url: str = RPC_URL, output_path: Path = OUTPUT_PATH) -> None:
     OUTPUT_PATH = output_path
 
 
-def _execute_rpc_measure(func: Callable, args: tuple, kwargs: dict, currently_measuring: set) -> Any:
+def _execute_rpc_measure(func: Callable, args: tuple, kwargs: dict, currently_measuring: set, exp: str) -> Any:
     """Handles synchronous function measurement."""
     now = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
     params = {"pid": PID, "function_name": func.__name__}
@@ -74,7 +75,7 @@ def _execute_rpc_measure(func: Callable, args: tuple, kwargs: dict, currently_me
     result = func(*args, **kwargs)
     try:
         response_data = send_rpc_request("stop_measurements", params)
-        pd.DataFrame(response_data).to_csv(OUTPUT_PATH / f"{now}_{func.__name__}.csv", header=True, index=False)
+        pd.DataFrame(response_data).to_csv(OUTPUT_PATH / f"{exp}_{func.__name__}_{now}.csv", header=True, index=False)
 
     except Exception as e:
         logging.error(f"Failed to stop or collect measurement: {e}")
@@ -84,7 +85,7 @@ def _execute_rpc_measure(func: Callable, args: tuple, kwargs: dict, currently_me
         return result
 
 
-async def _execute_rpc_measure_async(func: Callable, args: tuple, kwargs: dict, currently_measuring: set) -> Any:
+async def _execute_rpc_measure_async(func: Callable, args: tuple, kwargs: dict, currently_measuring: set, exp: str) -> Any:
     """Handles asynchronous function measurement."""
     now = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
     params = {"pid": PID, "function_name": func.__name__}
@@ -102,7 +103,7 @@ async def _execute_rpc_measure_async(func: Callable, args: tuple, kwargs: dict, 
 
     try:
         response_data = send_rpc_request("stop_measure", params)
-        pd.DataFrame(response_data).to_csv(OUTPUT_PATH / f"{now}_{func.__name__}.csv", header=True, index=False)
+        pd.DataFrame(response_data).to_csv(OUTPUT_PATH / exp / f"{func.__name__}_{now}.csv", header=True, index=False)
     except Exception as e:
         logging.error(f"Failed to stop or collect measurement: {e}")
     finally:

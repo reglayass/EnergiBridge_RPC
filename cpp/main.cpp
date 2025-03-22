@@ -37,14 +37,15 @@ bool is_energibridge_running() {
 }
 
 bool EnergiBridge_RPC::start_measurements(const std::string &function_name) {
-    if (is_energibridge_running()) {
-        throw JsonRpcException(-32001, "There is already a measurement running!");
-    }
+    // if (is_energibridge_running()) {
+        // throw JsonRpcException(-32001, "There is already a measurement running!");
+    // }
 
     std::cout << "Starting measurement: " << function_name << std::endl;
+    const char* func = function_name.c_str();
 
     char results_filename[50];
-    sprintf(results_filename, "results_%s.csv", function_name);
+    sprintf(results_filename, "results_%s.csv", func);
 
     char output[100];
     sprintf(output, "--output=%s", results_filename);
@@ -119,8 +120,9 @@ Json::Value EnergiBridge_RPC::stop_measurements(const std::string& function_name
 
             // Read the results CSV file
             // convert to JSON array of objects
+            const char* func = function_name.c_str();
             char results_filename[50];
-            sprintf(results_filename, "results_%s.csv", function_name);
+            sprintf(results_filename, "results_%s.csv", func);
 
             return read_csv(results_filename);
         } else {

@@ -23,8 +23,8 @@ class EnergiBridge_RPC : public AbstractStubServer {
 public:
     EnergiBridge_RPC(AbstractServerConnector &connector, serverVersion_t type);
 
-    virtual bool start_measure(const std::string& function_name);
-    virtual Json::Value stop_measure(const std::string& function_name);
+    virtual bool start_measurements(const std::string& function_name);
+    virtual Json::Value stop_measurements(const std::string& function_name);
 
 private:
     pid_t process_pid = -1; // Process of Energibridge
@@ -36,7 +36,7 @@ bool is_energibridge_running() {
     return system("pgrep energibridge > /dev/null");
 }
 
-bool EnergiBridge_RPC::start_measure(const std::string &function_name) {
+bool EnergiBridge_RPC::start_measurements(const std::string &function_name) {
     if (is_energibridge_running()) {
         throw JsonRpcException(-32001, "There is already a measurement running!");
     }
@@ -46,7 +46,7 @@ bool EnergiBridge_RPC::start_measure(const std::string &function_name) {
     char results_filename[50];
     sprintf(results_filename, "results_%s.csv", function_name);
 
-    char output[50];
+    char output[100];
     sprintf(output, "--output=%s", results_filename);
 
     // Fork the process
@@ -108,7 +108,7 @@ Json::Value read_csv(const char* filename) {
     return jsonArray;
 }
 
-Json::Value EnergiBridge_RPC::stop_measure(const std::string& function_name) {
+Json::Value EnergiBridge_RPC::stop_measurements(const std::string& function_name) {
     Json::Value response(Json::arrayValue);
 
     if (process_pid > 0) {

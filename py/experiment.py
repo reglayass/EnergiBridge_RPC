@@ -93,7 +93,7 @@ if __name__ == "__main__":
     sleep(30 if prod else 1)
 
     instances = ["rust", "cpp", "nonservice"]
-    fib_ns = [5, 35]
+    fib_ns = [10, 35, 40]
     experiments = list(itertools.product(instances, fib_ns))
 
     print("Starting experiments...")

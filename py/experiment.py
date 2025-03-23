@@ -28,12 +28,17 @@ def start_rust(server_proc: subprocess.Popen):
     print("\t\tStarting Rust server...")
     server_proc.stdout.flush()
     server_proc.stdin.write(f"cd {ROOT / 'rust_svc'}\n")
-    background_proc.stdin.flush()
-    server_proc.stdin.write("RUSTFLAGS=\"-A warnings\" cargo run -q --release -- -u &\n")
-    background_proc.stdin.flush()
+    server_proc.stdin.flush()
+    server_proc.stdin.write(("$env:RUSTFLAGS = '-Awarnings'; $job=" if sys.platform == "win32" else "RUSTFLAGS=\"-A warnings\"" ) + " cargo run -q --release -- -u &\n")
+    server_proc.stdin.flush()
+
+
     started = False
     # check if its still building
     while not started:
+        if sys.platform == "win32":
+            server_proc.stdin.write("Receive-Job -Job $job \n")
+            server_proc.stdin.flush()
         line = server_proc.stdout.readline()
         if "Energibridge RPC server running on port" in line:
             started = True
@@ -47,9 +52,9 @@ def start_rust(server_proc: subprocess.Popen):
 def start_cpp(server_proc: subprocess.Popen):
     print("\t\tStarting C++ server...")
     server_proc.stdin.write(f"cd {ROOT / 'cpp'}")
-
-    server_proc.stdin.write("TO ADD &\n")
-    background_proc.stdin.flush()
+    server_proc.stdin.flush()
+    server_proc.stdin.write("${TO ADD} &\n")
+    server_proc.stdin.flush()
     print("\t\tCooling down from server start for 5 seconds...")
     sleep(5)
 
@@ -62,7 +67,7 @@ def run_experiment(exp, port, num):
     # ignore output
     proc = subprocess.run(args, cwd=ROOT / "py", stdin=subprocess.DEVNULL, stdout=subprocess.PIPE,
                           stderr=subprocess.STDOUT, text=True)
-    if "ERROR" in proc.stdout:
+    if "ERROR" in proc.stdout or "Error" in proc.stdout:
         raise RuntimeError(f"Error while running experiment: {proc.stdout}")
     else:
         print(f"\t\tResult: {proc.stdout}")
@@ -78,11 +83,12 @@ if __name__ == "__main__":
         ctypes.windll.shell32.ShellExecuteW(None, "runas", sys.executable, " ".join(sys.argv), None, 1)
         sys.exit(0)
 
-    background_proc = subprocess.Popen(["bash"] if sys.platform != "win32" else ["powershell"], stdin=subprocess.PIPE,
+    # Use pwsh for windows
+    background_proc = subprocess.Popen(["bash"] if sys.platform != "win32" else ["pwsh"], stdin=subprocess.PIPE,
                                        stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True, bufsize=5)
     if sys.platform == "win32":
         # TODO what if RAPL was not initialized?
-        background_proc.stdin.write("sc start rapl\n")
+        background_proc.stdin.write("sc.exe start rapl\n")
         background_proc.stdin.flush()
 
     # Warm up
@@ -114,9 +120,7 @@ if __name__ == "__main__":
             # kill all child process of the shell
             print("\t\tFib function done, stopping server...")
             background_proc.stdin.write(
-                "Stop-Process -Id (" +
-                "Get-CimInstance Win32_Process | Where-Object { $_.ParentProcessId -eq $PID })" +
-                ".ProcessId -Force\n" if sys.platform == "win32" else "pkill -P $$\n")
+                "Stop-Job -Job $job\n" if sys.platform == "win32" else "pkill -P $$\n")
             print("\t\tServer stopped.")
 
             # Reads latest csv file, TODO setup dir for classic energibridge
@@ -134,7 +138,7 @@ if __name__ == "__main__":
             sleep(30 if prod else 1)
 
     if sys.platform == "win32":
-        background_proc.stdin.write("sc stop rapl\n")
+        background_proc.stdin.write("sc.exe stop rapl\n")
         background_proc.stdin.flush()
     background_proc.terminate()
 

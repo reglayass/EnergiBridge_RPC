@@ -122,14 +122,14 @@ if __name__ == "__main__":
                 print("\t\tServer stopped.")
 
             # Reads latest csv file
-            current_result = pd.read_csv(
-                max(glob.glob(os.path.join(ROOT / "py", "energy_results", "*.csv")), key=os.path.getctime))
+            latest_csv = max(glob.glob(os.path.join(ROOT / "py", "energy_results", "*.csv")), key=os.path.getctime)
+            current_result = pd.read_csv(latest_csv)
             if n not in results:
                 results[n] = {}
             if exp not in results[n]:
                 results[n][exp] = []
             results[n][exp].append(current_result)
-
+            os.remove(latest_csv)
             # print(current_result)
 
             print("\t\tSleep for 30 seconds...")

@@ -1,5 +1,7 @@
-requests
-pandas
-pytest
-pytest-asyncio
-setuptools
+requests~=2.32.3
+pytest~=8.3.5
+setuptools~=77.0.3
+jsonrpcclient~=4.0.3
+numpy~=2.2.4
+pandas~=2.2.3
+pytest-asyncio~=0.25.3

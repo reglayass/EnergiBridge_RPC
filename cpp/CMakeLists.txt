@@ -1,14 +1,25 @@
-project(CEnergiBridge)
+# Minimum version of CMake
+cmake_minimum_required(VERSION 3.10)
 
-cmake_minimum_required(VERSION 3.22)
+# Project name
+project(EnergiBridge_RPC)
 
+# Set C++ standard
 set(CMAKE_CXX_STANDARD 17)
-set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-add_subdirectory(external/rpclib)
+# Specify the source file
+set(SOURCES main.cpp)
 
-add_executable(CEnergiBridge main.cpp)
-target_link_libraries(CEnergiBridge PRIVATE rpc)
-target_include_directories(CEnergiBridge PRIVATE ${rpclib_INCLUDE_DIRS})
+# Set output directory for the executable
+set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
 
-set_target_properties(CEnergiBridge PROPERTIES RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
+# Add executable
+add_executable(EnergiBridge_RPC ${SOURCES})
+
+# Link libraries
+target_link_libraries(EnergiBridge_RPC
+    jsoncpp
+    microhttpd
+    jsonrpccpp-common
+    jsonrpccpp-server
+)

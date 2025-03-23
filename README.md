@@ -18,7 +18,7 @@ make
 Now you can run the server like so:
 
 ```
-cd bin && ./EnergiBridge_RPC
+./build/bin/EnergiBridge_RPC
 ```
 This will start the server on `http://localhost:8383`, and terminates when you press `Ctrl+C`.
 

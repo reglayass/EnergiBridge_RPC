@@ -12,20 +12,20 @@ class AbstractStubServer : public jsonrpc::AbstractServer<AbstractStubServer>
     public:
         AbstractStubServer(jsonrpc::AbstractServerConnector &conn, jsonrpc::serverVersion_t type = jsonrpc::JSONRPC_SERVER_V2) : jsonrpc::AbstractServer<AbstractStubServer>(conn, type)
         {
-            this->bindAndAddMethod(jsonrpc::Procedure("start_measurements", jsonrpc::PARAMS_BY_NAME, jsonrpc::JSON_BOOLEAN, "function_name",jsonrpc::JSON_STRING, NULL), &AbstractStubServer::start_measurementsI);
-            this->bindAndAddMethod(jsonrpc::Procedure("stop_measurements", jsonrpc::PARAMS_BY_NAME, jsonrpc::JSON_ARRAY, "function_name",jsonrpc::JSON_STRING, NULL), &AbstractStubServer::stop_measurementsI);
+            this->bindAndAddMethod(jsonrpc::Procedure("start_measure", jsonrpc::PARAMS_BY_NAME, jsonrpc::JSON_BOOLEAN, "function_name",jsonrpc::JSON_STRING, NULL), &AbstractStubServer::start_measureI);
+            this->bindAndAddMethod(jsonrpc::Procedure("stop_measure", jsonrpc::PARAMS_BY_NAME, jsonrpc::JSON_ARRAY, "function_name",jsonrpc::JSON_STRING, NULL), &AbstractStubServer::stop_measureI);
         }
 
-        inline virtual void start_measurementsI(const Json::Value &request, Json::Value &response)
+        inline virtual void start_measureI(const Json::Value &request, Json::Value &response)
         {
-            response = this->start_measurements(request["function_name"].asString());
+            response = this->start_measure(request["function_name"].asString());
         }
-        inline virtual void stop_measurementsI(const Json::Value &request, Json::Value &response)
+        inline virtual void stop_measureI(const Json::Value &request, Json::Value &response)
         {
-            response = this->stop_measurements(request["function_name"].asString());
+            response = this->stop_measure(request["function_name"].asString());
         }
-        virtual bool start_measurements(const std::string& function_name) = 0;
-        virtual Json::Value stop_measurements(const std::string& function_name) = 0;
+        virtual bool start_measure(const std::string& function_name) = 0;
+        virtual Json::Value stop_measure(const std::string& function_name) = 0;
 };
 
 #endif //JSONRPC_CPP_STUB_ABSTRACTSTUBSERVER_H_

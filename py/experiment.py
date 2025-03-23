@@ -120,7 +120,7 @@ if __name__ == "__main__":
                 server.wait()
                 print("\t\tServer stopped.")
 
-            # Reads latest csv file, TODO setup dir for classic energibridge
+            # Reads latest csv file
             current_result = pd.read_csv(
                 max(glob.glob(os.path.join(ROOT / "py", "energy_results", "*.csv")), key=os.path.getctime))
             if n not in results:

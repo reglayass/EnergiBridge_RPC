@@ -68,7 +68,7 @@ def build_servers():
     print("Building energibridge...")
     subprocess.run(["cargo", "build", "-r", "-q"], cwd=ROOT / "rust_svc", env={**os.environ, "RUSTFLAGS": "-Awarnings"})
     subprocess.run(
-        ["mv", f"{ROOT / 'rust_csv' / 'target' / 'release' / 'energibridge'}", f"{ROOT / 'py' / 'energibridge'}"])
+        ["mv", f"{ROOT / 'rust_svc' / 'target' / 'release' / 'energibridge'}", f"{ROOT / 'py' / 'energibridge'}"])
 
     print("Building CPP energibridge server ...")
     subprocess.run(["cmake", ".."], cwd=ROOT / "cpp" / "build")

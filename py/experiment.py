@@ -78,8 +78,8 @@ def build_servers():
 
 
 if __name__ == "__main__":
-    prod = False  # TODO remove this or change to True when running on production
-    iterations = 1 # TODO change this as appropriate
+    prod = True  # TODO remove this or change to True when running on production
+    iterations = 30 # TODO change this as appropriate
     results = {}
 
     build_servers()

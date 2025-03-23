@@ -24,39 +24,33 @@ def is_admin():
         return False
 
 
-def start_rust(server_proc: subprocess.Popen):
+def start_rust():
     print("\t\tStarting Rust server...")
-    server_proc.stdout.flush()
-    server_proc.stdin.write(f"cd {ROOT / 'rust_svc'}\n")
-    server_proc.stdin.flush()
-    server_proc.stdin.write(("$env:RUSTFLAGS = '-Awarnings'; $job=" if sys.platform == "win32" else "RUSTFLAGS=\"-A warnings\"" ) + " cargo run -q --release -- -u &\n")
-    server_proc.stdin.flush()
-
+    server_proc = subprocess.Popen(["cargo", "run", "--release", "--", "-u"], cwd=ROOT / "rust_svc",
+                                   stdin=subprocess.PIPE,
+                                   stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True,
+                                   env={**os.environ, "RUSTFLAGS": "-Awarnings"})
 
     started = False
     # check if its still building
     while not started:
-        if sys.platform == "win32":
-            server_proc.stdin.write("Receive-Job -Job $job \n")
-            server_proc.stdin.flush()
         line = server_proc.stdout.readline()
+        print(line)
         if "Energibridge RPC server running on port" in line:
             started = True
         if server_proc.poll() is not None:
             raise RuntimeError("Failed to start Rust server")
     print("\t\tRust server started.")
-    print("\t\tCooling down from server start for 5 seconds...")
-    sleep(5)
+    return server_proc
 
 
-def start_cpp(server_proc: subprocess.Popen):
+def start_cpp():
     print("\t\tStarting C++ server...")
-    server_proc.stdin.write(f"cd {ROOT / 'cpp'}")
-    server_proc.stdin.flush()
-    server_proc.stdin.write("${TO ADD} &\n")
-    server_proc.stdin.flush()
-    print("\t\tCooling down from server start for 5 seconds...")
-    sleep(5)
+    server_proc = subprocess.Popen(["./server"], cwd=ROOT / "cpp", stdin=subprocess.PIPE,
+                                   stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+    print("\t\tCppserver started.")
+
+    return server_proc
 
 
 def run_experiment(exp, port, num):
@@ -83,14 +77,6 @@ if __name__ == "__main__":
         ctypes.windll.shell32.ShellExecuteW(None, "runas", sys.executable, " ".join(sys.argv), None, 1)
         sys.exit(0)
 
-    # Use pwsh for windows
-    background_proc = subprocess.Popen(["bash"] if sys.platform != "win32" else ["pwsh"], stdin=subprocess.PIPE,
-                                       stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True, bufsize=5)
-    if sys.platform == "win32":
-        # TODO what if RAPL was not initialized?
-        background_proc.stdin.write("sc.exe start rapl\n")
-        background_proc.stdin.flush()
-
     # Warm up
     print("Warming up...")
     run_experiment("nonservice", None, 30)
@@ -105,23 +91,27 @@ if __name__ == "__main__":
     print("Starting experiments...")
     for i in range(iterations):
         for (exp, n) in experiments:
+            server = None
 
             print(f"\tIteration {i}: running {exp} with n={n}...")
             if exp == "rust":
-                start_rust(background_proc)
+                server = start_rust()
             elif exp == "cpp":
-                start_cpp(background_proc)
+                server = start_cpp()
 
-            # TODO classic energibridge, feel free to use background_proc , rapl is already enabled
+            if server:
+                print("\t\tCooling down from server start for 5 seconds...")
+                sleep(5)
+
             run_experiment(exp, port_map[exp], n)
 
-            # TODO handle the case where classic energibridge is used, i.e. no server
             # Stop server
-            # kill all child process of the shell
-            print("\t\tFib function done, stopping server...")
-            background_proc.stdin.write(
-                "Stop-Job -Job $job\n" if sys.platform == "win32" else "pkill -P $$\n")
-            print("\t\tServer stopped.")
+            print("\t\tFib function done")
+            if server:
+                print("\t\tStopping server...")
+                server.terminate()
+                server.wait()
+                print("\t\tServer stopped.")
 
             # Reads latest csv file, TODO setup dir for classic energibridge
             current_result = pd.read_csv(
@@ -132,15 +122,11 @@ if __name__ == "__main__":
                 results[n][exp] = []
             results[n][exp].append(current_result)
 
-            # print(current_result)
+            print(current_result)
 
             print("\t\tSleep for 30 seconds...")
             sleep(30 if prod else 1)
 
-    if sys.platform == "win32":
-        background_proc.stdin.write("sc.exe stop rapl\n")
-        background_proc.stdin.flush()
-    background_proc.terminate()
 
     print("Experiment finished.")
 

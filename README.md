@@ -54,7 +54,7 @@ chmod +x ./target/release/energibridge
 ```bash
 cargo run --release -- -u    
 ```
-Both will start the server on `http://localhost:8085`, and terminates when you press `Ctrl+C`.
+Both will start the server on `http://localhost:8095`, and terminates when you press `Ctrl+C`.
 
 ### Example RPC Calls (body) to the Server
 #### start_measurement

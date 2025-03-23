@@ -6,16 +6,23 @@
 #include <stdio.h>
 
 #include <cstdlib>
-#include <csignal>
-#include <unistd.h>
 #include <sstream>
 #include <cstdio>
 #include <cstring>
-#include <sys/wait.h>
 #include <fstream>
 #include <sstream>
 #include <vector>
 #include <map>
+
+#ifdef _WIN32
+    #include <windows.h>
+    #define PROCESS_TYPE HANDLE
+#else
+    #include <unistd.h>
+    #include <sys/types.h>
+    #include <csignal>
+    #define PROCESS_TYPE pid_t
+#endif
 
 using namespace jsonrpc;
 
@@ -27,7 +34,7 @@ public:
     virtual Json::Value stop_measurements(const std::string& function_name);
 
 private:
-    pid_t process_pid = -1; // Process of Energibridge
+    PROCESS_TYPE process_handle = -1; // Process of Energibridge
 };
 
 EnergiBridge_RPC::EnergiBridge_RPC(AbstractServerConnector &connector, serverVersion_t type) : AbstractStubServer(connector, type) {}
@@ -42,26 +49,63 @@ bool EnergiBridge_RPC::start_measurements(const std::string &function_name) {
     // }
 
     std::cout << "Starting measurement: " << function_name << std::endl;
-    const char* func = function_name.c_str();
 
     char results_filename[50];
-    sprintf(results_filename, "results_%s.csv", func);
+    #ifdef _WIN32
+        sprintf_s(results_filename, "results_%s.csv", function_name.c_str());
+    #else
+        sprintf(results_filename, "results_%s.csv", function_name.c_str());
+    #endif;
 
     char output[100];
-    sprintf(output, "--output=%s", results_filename);
+    #ifdef _WIN32
+        sprintf_s(output, "--output=%s", results_filename);
+    #else
+        sprintf(output, "--output=%s", results_filename);
+    #endif
 
-    // Fork the process
-    process_pid = fork();
-    if (process_pid == 0) {
-        // Child process: Replace with your command
-        execlp("./energibridge", "energibridge", output, "sleep", "infinity", (char *)NULL);
-        exit(1);  // If exec fails
-    } else if (process_pid > 0) {
-        std::cout << "Started process with PID: " << process_pid << std::endl;
-        return true;
-    } else {
-        throw JsonRpcException(-32001, "Failed to start the process!");
-    }
+    #ifdef _WIN32
+        std::string command = "energibridge.exe " + std::string(output) + " sleep infinity";
+
+        STARTUPINFOA si;
+        PROCESS_INFORMATION pi;
+        ZeroMemory(&si, sizeof(si));
+        si.cb = sizeof(si);
+        ZeroMemory(&pi, sizeof(pi));
+
+        if (CreateProcessA(
+                NULL,                      // Application name
+                &command[0],               // Command line
+                NULL, NULL,                // Process handle not inheritable
+                FALSE,                     // Set handle inheritance to FALSE
+                0,                         // No special flags
+                NULL,                      // Use parent's environment block
+                NULL,                      // Use parent's starting directory 
+                &si,                       // Pointer to STARTUPINFO structure
+                &pi                        // Pointer to PROCESS_INFORMATION structure
+            )) 
+        {
+            CloseHandle(pi.hThread);  // Close thread handle
+            process_handle = pi.hProcess; // Store process handle
+            std::cout << "Started process with handle: " << process_handle << std::endl;
+            return true;
+        } else {
+            throw JsonRpcException(-32001, "Failed to start the process!");
+        }
+    #else
+        // Fork the process
+        process_handle = fork();
+        if (process_handle == 0) {
+            // Child process: Replace with your command
+            execlp("./energibridge", "energibridge", output, "sleep", "infinity", (char *)NULL);
+            exit(1);  // If exec fails
+        } else if (process_handle > 0) {
+            std::cout << "Started process with PID: " << process_handle << std::endl;
+            return true;
+        } else {
+            throw JsonRpcException(-32001, "Failed to start the process!");
+        }
+    #endif
 
     return false;
 }
@@ -112,25 +156,48 @@ Json::Value read_csv(const char* filename) {
 Json::Value EnergiBridge_RPC::stop_measurements(const std::string& function_name) {
     Json::Value response(Json::arrayValue);
 
-    if (process_pid > 0) {
-        std::cout << "Stopping measurement: " << function_name << " (PID: " << process_pid << ")" << std::endl;
-        if (kill(process_pid, SIGTERM) == 0) {
-            std::cout << "Process terminated." << std::endl;
-            process_pid = -1;  // Reset PID
 
-            // Read the results CSV file
-            // convert to JSON array of objects
-            const char* func = function_name.c_str();
-            char results_filename[50];
-            sprintf(results_filename, "results_%s.csv", func);
+    #ifdef _WIN32:
+        if (process_handle) {
+            std::cout << "Stopping measurement: " << function_name << std::endl;
 
-            return read_csv(results_filename);
+            if (TerminateProcess(process_handle, 0)) {
+                std::cout << "Process terminated." << std::endl;
+                CloseHandle(process_handle);
+                process_handle = NULL;
+
+                // Read the results CSV file
+                char results_filename[50];
+                sprintf_s(results_filename, "results_%s.csv", function_name.c_str());
+
+                return read_csv(results_filename);
+            } else {
+                throw JsonRpcException(-32001, "Failed to terminate process!");
+            }
         } else {
-            throw JsonRpcException(-32001, "Failed to terminate process!");
+            throw JsonRpcException(-32001, "No process running!");
         }
-    } else {
-        throw JsonRpcException(-32001, "No process running!");
-    }
+    #else
+        if (process_handle > 0) {
+            std::cout << "Stopping measurement: " << function_name << " (PID: " << process_handle << ")" << std::endl;
+            if (kill(process_handle, SIGTERM) == 0) {
+                std::cout << "Process terminated." << std::endl;
+                process_handle = -1;  // Reset PID
+
+                // Read the results CSV file
+                // convert to JSON array of objects
+                const char* func = function_name.c_str();
+                char results_filename[50];
+                sprintf(results_filename, "results_%s.csv", func);
+
+                return read_csv(results_filename);
+            } else {
+                throw JsonRpcException(-32001, "Failed to terminate process!");
+            }
+        } else {
+            throw JsonRpcException(-32001, "No process running!");
+        }
+    #endif
 
     return Json::Value (Json::arrayValue);
 }

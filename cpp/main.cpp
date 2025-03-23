@@ -4,7 +4,10 @@
 #include <jsonrpccpp/server/connectors/httpserver.h>
 #include <jsonrpccpp/common/exception.h>
 #include <stdio.h>
+#include <chrono>
+#include <thread>
 
+using namespace std::chrono_literals;
 #include <cstdlib>
 #include <csignal>
 #include <unistd.h>
@@ -45,7 +48,7 @@ bool EnergiBridge_RPC::start_measurements(const std::string &function_name) {
     const char* func = function_name.c_str();
 
     char results_filename[50];
-    sprintf(results_filename, "results_%s.csv", func);
+    sprintf(results_filename, "./results_%s.csv", func);
 
     char output[100];
     sprintf(output, "--output=%s", results_filename);
@@ -54,7 +57,7 @@ bool EnergiBridge_RPC::start_measurements(const std::string &function_name) {
     process_pid = fork();
     if (process_pid == 0) {
         // Child process: Replace with your command
-        execlp("./energibridge", "energibridge", output, "sleep", "infinity", (char *)NULL);
+        execlp("./energibridge", "energibridge", output, "sh", "-c", "while true; do sleep 5; done", (char *)NULL);
         exit(1);  // If exec fails
     } else if (process_pid > 0) {
         std::cout << "Started process with PID: " << process_pid << std::endl;
@@ -122,7 +125,7 @@ Json::Value EnergiBridge_RPC::stop_measurements(const std::string& function_name
             // convert to JSON array of objects
             const char* func = function_name.c_str();
             char results_filename[50];
-            sprintf(results_filename, "results_%s.csv", func);
+            sprintf(results_filename, "./results_%s.csv", func);
 
             return read_csv(results_filename);
         } else {

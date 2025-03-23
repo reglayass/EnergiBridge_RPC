@@ -2,8 +2,9 @@ import ctypes
 import glob
 import itertools
 import os
+import pickle
 import subprocess
-import sys
+from datetime import datetime
 from pathlib import Path
 from time import sleep
 
@@ -26,35 +27,30 @@ def is_admin():
 
 def start_rust():
     print("\t\tStarting Rust server...")
-    server_proc = subprocess.Popen(["cargo", "run", "--release", "--", "-u"], cwd=ROOT / "rust_svc",
+    server_proc = subprocess.Popen(["./energibridge", "-u", "-i=50"], cwd=ROOT / "py",
                                    stdin=subprocess.PIPE,
-                                   stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True,
-                                   env={**os.environ, "RUSTFLAGS": "-Awarnings"})
-
-    started = False
-    # check if its still building
-    while not started:
-        line = server_proc.stdout.readline()
-        print(line)
-        if "Energibridge RPC server running on port" in line:
-            started = True
-        if server_proc.poll() is not None:
-            raise RuntimeError("Failed to start Rust server")
-    print("\t\tRust server started.")
+                                   stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
     return server_proc
 
 
 def start_cpp():
     print("\t\tStarting C++ server...")
-    server_proc = subprocess.Popen(["./server"], cwd=ROOT / "cpp", stdin=subprocess.PIPE,
+    server_proc = subprocess.Popen(["./EnergiBridge_CPP_RPC"], cwd=ROOT / "py", stdin=subprocess.PIPE,
                                    stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
-    print("\t\tCppserver started.")
+    print("\t\tCpp server started.")
 
     return server_proc
 
 
 def run_experiment(exp, port, num):
     args = ["python", "test.py", f"--exp={exp}", f"--num={num}"]
+
+    if exp == "nonservice":
+        subprocess.run(["./energibridge",
+                        f"--output=./energy_results/{exp}_fib_{datetime.now().strftime("%Y-%m-%d_%H-%M-%S")}.csv",
+                        *args], cwd=ROOT / "py")
+        return
+
     if port:
         args.append(f"--port={port}")
 
@@ -67,15 +63,26 @@ def run_experiment(exp, port, num):
         print(f"\t\tResult: {proc.stdout}")
 
 
+def build_servers():
+    # Note this only works for UNIX based OS
+    print("Building energibridge...")
+    subprocess.run(["cargo", "build", "-r", "-q"], cwd=ROOT / "rust_svc", env={**os.environ, "RUSTFLAGS": "-Awarnings"})
+    subprocess.run(
+        ["mv", f"{ROOT / "rust_svc" / "target" / "release" / "energibridge"}", f"{ROOT / "py" / "energibridge"}"])
+
+    print("Building CPP energibridge server ...")
+    subprocess.run(["cmake", ".."], cwd=ROOT / "cpp" / "build")
+    subprocess.run(["make"], cwd=ROOT / "cpp" / "build")
+    subprocess.run(
+        ["mv", f"{ROOT / "cpp" / "build" / "bin" / "EnergiBridge_RPC"}", f"{ROOT / "py" / "EnergiBridge_CPP_RPC"}"])
+
+
 if __name__ == "__main__":
     prod = False  # TODO remove this or change to True when running on production
-    iterations = 3
+    iterations = 1 # TODO change this as appropriate
     results = {}
 
-    if sys.platform == "win32" and not is_admin():
-        # Re-run the program with admin rights
-        ctypes.windll.shell32.ShellExecuteW(None, "runas", sys.executable, " ".join(sys.argv), None, 1)
-        sys.exit(0)
+    build_servers()
 
     # Warm up
     print("Warming up...")
@@ -122,12 +129,27 @@ if __name__ == "__main__":
                 results[n][exp] = []
             results[n][exp].append(current_result)
 
-            print(current_result)
+            # print(current_result)
 
             print("\t\tSleep for 30 seconds...")
             sleep(30 if prod else 1)
 
-
     print("Experiment finished.")
 
+    # Its important to use binary mode
+    file = open(ROOT / 'py' / 'results.pkl', 'ab')
+
+    # source, destination
+    pickle.dump(results, file)
+    file.close()
+
+    os.remove(ROOT / "py" / "energibridge")
+    os.remove(ROOT / "py" / "EnergiBridge_CPP_RPC")
+
     # TODO process results
+    ## EXAMPLE use case
+    file = open(ROOT/'py'/'results.pkl', 'rb')
+    results = pickle.load(file) ## This will be a dict of dict of list of dataframes i.e each df = 1 iteration
+    print(results)
+    file.close()
+

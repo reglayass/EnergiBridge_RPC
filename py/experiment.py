@@ -47,7 +47,7 @@ def run_experiment(exp, port, num):
 
     if exp == "nonservice":
         subprocess.run(["./energibridge",
-                        f"--output=./energy_results/{exp}_fib_{datetime.now().strftime("%Y-%m-%d_%H-%M-%S")}.csv",
+                        f"--output=./energy_results/{exp}_fib_{datetime.now().strftime('%Y-%m-%d_%H-%M-%S')}.csv",
                         *args], cwd=ROOT / "py")
         return
 
@@ -68,13 +68,13 @@ def build_servers():
     print("Building energibridge...")
     subprocess.run(["cargo", "build", "-r", "-q"], cwd=ROOT / "rust_svc", env={**os.environ, "RUSTFLAGS": "-Awarnings"})
     subprocess.run(
-        ["mv", f"{ROOT / "rust_svc" / "target" / "release" / "energibridge"}", f"{ROOT / "py" / "energibridge"}"])
+        ["mv", f"{ROOT / 'rust_csv' / 'target' / 'release' / 'energibridge'}", f"{ROOT / 'py' / 'energibridge'}"])
 
     print("Building CPP energibridge server ...")
     subprocess.run(["cmake", ".."], cwd=ROOT / "cpp" / "build")
     subprocess.run(["make"], cwd=ROOT / "cpp" / "build")
     subprocess.run(
-        ["mv", f"{ROOT / "cpp" / "build" / "bin" / "EnergiBridge_RPC"}", f"{ROOT / "py" / "EnergiBridge_CPP_RPC"}"])
+        ["mv", f"{ROOT / 'cpp' / 'build' / 'bin' / 'EnergiBridge_RPC'}", f"{ROOT / 'py' / 'EnergiBridge_CPP_RPC'}"])
 
 
 if __name__ == "__main__":

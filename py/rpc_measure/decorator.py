@@ -75,6 +75,7 @@ def _execute_rpc_measure(func: Callable, args: tuple, kwargs: dict, currently_me
     # Allow time for server to setup energibridge
     sleep(1)
     result = func(*args, **kwargs)
+    sleep(1)
     try:
         response_data = send_rpc_request("stop_measurements", params)
         pd.DataFrame(response_data).to_csv(OUTPUT_PATH / f"{exp}_{func.__name__}_{now}.csv", header=True, index=False)
@@ -104,6 +105,7 @@ async def _execute_rpc_measure_async(func: Callable, args: tuple, kwargs: dict, 
     # Allow time for server to setup energibridge
     sleep(1)
     result = await func(*args, **kwargs)
+    sleep(1)
 
     try:
         response_data = send_rpc_request("stop_measurements", params)

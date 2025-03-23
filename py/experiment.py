@@ -3,6 +3,7 @@ import glob
 import itertools
 import os
 import pickle
+import random
 import subprocess
 from datetime import datetime
 from pathlib import Path
@@ -27,7 +28,7 @@ def is_admin():
 
 def start_rust():
     print("\t\tStarting Rust server...")
-    server_proc = subprocess.Popen(["./energibridge", "-u", "-i=50"], cwd=ROOT / "py",
+    server_proc = subprocess.Popen(["./energibridge", "-u"], cwd=ROOT / "py",
                                    stdin=subprocess.PIPE,
                                    stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
     return server_proc
@@ -133,11 +134,12 @@ if __name__ == "__main__":
 
             print("\t\tSleep for 30 seconds...")
             sleep(30 if prod else 1)
+        random.shuffle(experiments)
 
     print("Experiment finished.")
 
     # Its important to use binary mode
-    file = open(ROOT / 'py' / 'results.pkl', 'ab')
+    file = open(ROOT / 'py' / 'results.pkl', 'wb')
 
     # source, destination
     pickle.dump(results, file)

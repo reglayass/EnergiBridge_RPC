@@ -10,6 +10,8 @@ from pathlib import Path
 from time import sleep
 
 import pandas as pd
+import requests
+from jsonrpcclient import request_uuid, parse
 
 ROOT = Path(__file__).parent.parent
 port_map = {
@@ -18,6 +20,7 @@ port_map = {
     "nonservice": None,
 }
 
+PID = os.getpid()
 
 def is_admin():
     try:
@@ -63,6 +66,27 @@ def run_experiment(exp, port, num):
     else:
         print(f"\t\tResult: {proc.stdout}")
 
+def run_experiment_sleep(exp, num):
+    args = ["sleep", str(num)]
+    now = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+
+    if exp == "nonservice":
+        subprocess.run(["./energibridge",
+                        f"--output=./energy_results/{exp}_sleep{num}_{now}.csv",
+                        *args], cwd=ROOT / "py")
+        return
+
+    ## Send start_measurement
+    params = {"pid": PID, "function_name": f"sleep_{num}"}
+    requests.post(f"http://localhost:{port_map[exp]}/", json=request_uuid("start_measurements", params))
+
+    # Allow time for server to setup energibridge
+    sleep(1)
+    subprocess.run(args)
+    response = requests.post(f"http://localhost:{port_map[exp]}/", json=request_uuid("stop_measurements", params))
+    res = parse(response.json())
+    pd.DataFrame(res.result).to_csv(ROOT / "py" / "energy_results"/ f"{exp}_sleep{num}_{now}.csv", header=True, index=False)
+
 
 def build_servers():
     # Note this only works for UNIX based OS
@@ -94,14 +118,19 @@ if __name__ == "__main__":
 
     instances = ["rust", "cpp", "nonservice"]
     fib_ns = [10, 35, 40]
-    experiments = list(itertools.product(instances, fib_ns))
+    experiments_fib = list(itertools.product(instances,["fib"], fib_ns))
+    sleep_s = [10,20]
+    experiments_sleep = list(itertools.product(instances,["sleep"],sleep_s))
+    experiments = []
+    experiments.extend(experiments_fib)
+    experiments.extend(experiments_sleep)
 
     print("Starting experiments...")
     for i in range(iterations):
-        for (exp, n) in experiments:
+        for (exp, func, n) in experiments:
             server = None
 
-            print(f"\tIteration {i}: running {exp} with n={n}...")
+            print(f"\tIteration {i}: running {exp} for {func} with n={n}...")
             if exp == "rust":
                 server = start_rust()
             elif exp == "cpp":
@@ -110,11 +139,15 @@ if __name__ == "__main__":
             if server:
                 print("\t\tCooling down from server start for 5 seconds...")
                 sleep(5)
+            print(f"\t\tRunning {func} with n={n}...")
 
-            run_experiment(exp, port_map[exp], n)
+            if func == "fib":
+                run_experiment(exp, port_map[exp], n)
+            elif func == "sleep":
+                run_experiment_sleep(exp, n)
 
             # Stop server
-            print("\t\tFib function done")
+            print(f"\t\tRunning {func} with n={n} done")
             if server:
                 print("\t\tStopping server...")
                 server.terminate()
@@ -124,11 +157,13 @@ if __name__ == "__main__":
             # Reads latest csv file
             latest_csv = max(glob.glob(os.path.join(ROOT / "py", "energy_results", "*.csv")), key=os.path.getctime)
             current_result = pd.read_csv(latest_csv)
-            if n not in results:
-                results[n] = {}
-            if exp not in results[n]:
-                results[n][exp] = []
-            results[n][exp].append(current_result)
+            if func not in results:
+                results[func] = {}
+            if n not in results[func]:
+                results[func][n] = {}
+            if exp not in results[func][n]:
+                results[func][n][exp] = []
+            results[func][n][exp].append(current_result)
             os.remove(latest_csv)
             # print(current_result)
 

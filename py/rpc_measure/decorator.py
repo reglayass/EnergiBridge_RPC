@@ -109,7 +109,7 @@ async def _execute_rpc_measure_async(func: Callable, args: tuple, kwargs: dict, 
 
     try:
         response_data = send_rpc_request("stop_measurements", params)
-        pd.DataFrame(response_data).to_csv(OUTPUT_PATH / exp / f"{func.__name__}_{now}.csv", header=True, index=False)
+        pd.DataFrame(response_data).to_csv(OUTPUT_PATH / f"{exp}_{func.__name__}_{now}.csv", header=True, index=False)
     except Exception as e:
         logging.error(f"Failed to stop or collect measurement: {e}")
     finally:

@@ -8,6 +8,7 @@ import subprocess
 from datetime import datetime
 from pathlib import Path
 from time import sleep
+import argparse
 
 import pandas as pd
 import requests
@@ -103,8 +104,15 @@ def build_servers():
 
 
 if __name__ == "__main__":
-    prod = True  # TODO remove this or change to True when running on production
-    iterations = 30 # TODO change this as appropriate
+    parser = argparse.ArgumentParser()
+    parser.add_argument('type', choices=['sleep', 'fib'], help="Specify testing either sleep or fibonacci sequence.")
+    parser.add_argument('-i', '--iterations', default=30, help="Number of iterations of the experiment to run. Defaults to 30.", type=int)
+    parser.add_argument('-p', '--production', action='store_true')
+    
+    args = parser.parse_args()
+    
+    prod = args.production
+    iterations = args.iterations
     results = {}
 
     build_servers()
@@ -114,16 +122,19 @@ if __name__ == "__main__":
     run_experiment("nonservice", None, 30)
     print("Warm up done.")
     print("Sleep for 30 seconds...")
-    sleep(30 if prod else 1)
-
+    sleep(30 if args.production else 1)
+    
     instances = ["rust", "cpp", "nonservice"]
-    fib_ns = [10, 35, 40]
-    experiments_fib = list(itertools.product(instances,["fib"], fib_ns))
-    sleep_s = [10,20]
-    experiments_sleep = list(itertools.product(instances,["sleep"],sleep_s))
     experiments = []
-    experiments.extend(experiments_fib)
-    experiments.extend(experiments_sleep)
+    
+    if args.type == "fib":
+        fib_ns = [10, 35, 40]
+        experiments_fib = list(itertools.product(instances,["fib"], [10, 35, 40]))
+        experiments.extend(experiments_fib)
+    else:
+        sleep_s = [10,20]
+        experiments_sleep = list(itertools.product(instances,["sleep"], [10,20]))
+        experiments.extend(experiments_sleep)
 
     print("Starting experiments...")
     for i in range(iterations):
@@ -174,7 +185,7 @@ if __name__ == "__main__":
     print("Experiment finished.")
 
     # Its important to use binary mode
-    file = open(ROOT / 'py' / 'results.pkl', 'wb')
+    file = open(ROOT / 'py' / f"results_{args.type}.pkl", 'wb')
 
     # source, destination
     pickle.dump(results, file)
@@ -185,7 +196,7 @@ if __name__ == "__main__":
 
     # TODO process results
     ## EXAMPLE use case
-    file = open(ROOT/'py'/'results.pkl', 'rb')
+    file = open(ROOT/'py'/ f"results_{args.type}.pkl", 'rb')
     results = pickle.load(file) ## This will be a dict of dict of list of dataframes i.e each df = 1 iteration
     print(results)
     file.close()

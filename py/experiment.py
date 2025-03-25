@@ -105,7 +105,6 @@ def build_servers():
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument('type', choices=['sleep', 'fib'], help="Specify testing either sleep or fibonacci sequence.")
     parser.add_argument('-i', '--iterations', default=30, help="Number of iterations of the experiment to run. Defaults to 30.", type=int)
     parser.add_argument('-p', '--production', action='store_true')
     
@@ -126,15 +125,13 @@ if __name__ == "__main__":
     
     instances = ["rust", "cpp", "nonservice"]
     experiments = []
-    
-    if args.type == "fib":
-        fib_ns = [10, 35, 40]
-        experiments_fib = list(itertools.product(instances,["fib"], [10, 35, 40]))
-        experiments.extend(experiments_fib)
-    else:
-        sleep_s = [10,20]
-        experiments_sleep = list(itertools.product(instances,["sleep"], [10,20]))
-        experiments.extend(experiments_sleep)
+
+    fib_ns = [10, 35, 40]
+    experiments_fib = list(itertools.product(instances,["fib"], [10, 35, 40]))
+    experiments.extend(experiments_fib)
+    sleep_s = [10,20]
+    experiments_sleep = list(itertools.product(instances,["sleep"], [10,20]))
+    experiments.extend(experiments_sleep)
 
     print("Starting experiments...")
     for i in range(iterations):
@@ -185,7 +182,7 @@ if __name__ == "__main__":
     print("Experiment finished.")
 
     # Its important to use binary mode
-    file = open(ROOT / 'py' / f"results_{args.type}.pkl", 'wb')
+    file = open(ROOT / 'py' / "results.pkl", 'wb')
 
     # source, destination
     pickle.dump(results, file)
@@ -196,8 +193,8 @@ if __name__ == "__main__":
 
     # TODO process results
     ## EXAMPLE use case
-    file = open(ROOT/'py'/ f"results_{args.type}.pkl", 'rb')
-    results = pickle.load(file) ## This will be a dict of dict of list of dataframes i.e each df = 1 iteration
+    file = open(ROOT/'py'/ "results.pkl", 'rb')
+    results = pickle.load(file)
     print(results)
     file.close()
 

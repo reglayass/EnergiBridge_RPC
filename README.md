@@ -3,11 +3,18 @@
 ## Cloning the Repository
 
 ## C++ Version
+This version requires you to have `cmake` installed. The following three lines will compile the RPC server and create an executable under `build/bin/EnergiBridge_RPC`
 
 ### Requirements
-Before running the server, make sure you follow the instructions [here](https://github.com/cinemast/libjson-rpc-cpp?tab=readme-ov-file#install-the-framework) to install the necessary packages.
+#### Packages
+- [jsonrpccpp](https://github.com/cinemast/libjson-rpc-cpp?tab=readme-ov-file#install-the-framework)
+- [microhttpd](https://www.gnu.org/software/libmicrohttpd/)
+- [jsoncpp](https://github.com/open-source-parsers/jsoncpp)
 
-This version requires you to have `cmake` installed. The following three lines will compile the RPC server and create an executable under `build/bin/EnergiBridge_RPC`
+**Note**: For Macos, there may be an option to install the packages via Homebrew
+
+
+## Building the Server
 
 ```
 cd cpp/build
@@ -15,10 +22,11 @@ cmake ..
 make
 ```
 
+## Running the server
 Now you can run the server like so:
 
 ```
-./build/bin/EnergiBridge_RPC
+./bin/EnergiBridge_RPC
 ```
 This will start the server on `http://localhost:8383`, and terminates when you press `Ctrl+C`.
 
@@ -157,3 +165,9 @@ Both will start the server on `http://localhost:8095`, and terminates when you p
 }
 ```
 </details>
+
+
+# Experiments
+We provided a script to run the experiments which writes a pickle file for the results at `./py/experiments.py`
+
+Please ensure all necessary dependencies and/or build tools are installed beforehand (see above).

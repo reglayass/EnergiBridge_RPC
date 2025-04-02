@@ -17,9 +17,24 @@ set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
 add_executable(EnergiBridge_RPC ${SOURCES})
 
 # Link libraries
-target_link_libraries(EnergiBridge_RPC
-    jsoncpp
-    microhttpd
-    jsonrpccpp-common
-    jsonrpccpp-server
+
+# target_link_libraries(EnergiBridge_RPC PUBLIC
+#     jsoncpp
+#     microhttpd
+#     jsonrpccpp-common
+#     jsonrpccpp-server
+# )
+
+
+find_package(PkgConfig REQUIRED)
+pkg_check_modules(JSONCPP REQUIRED IMPORTED_TARGET GLOBAL jsoncpp)
+pkg_check_modules(MICROHTTPD REQUIRED IMPORTED_TARGET GLOBAL libmicrohttpd)
+pkg_check_modules(JSONRPCCPP-COMMON REQUIRED IMPORTED_TARGET GLOBAL libjsonrpccpp-common)
+pkg_check_modules(JSONRPCCPP-SERVER REQUIRED IMPORTED_TARGET GLOBAL libjsonrpccpp-server)
+
+target_link_libraries(EnergiBridge_RPC PUBLIC
+    PkgConfig::JSONCPP
+    PkgConfig::MICROHTTPD
+    PkgConfig::JSONRPCCPP-COMMON
+    PkgConfig::JSONRPCCPP-SERVER
 )

@@ -4,6 +4,7 @@ import logging
 import os
 from datetime import datetime
 from pathlib import Path
+from time import sleep
 from typing import Any, Callable
 
 import pandas as pd
@@ -71,8 +72,10 @@ def _execute_rpc_measure(func: Callable, args: tuple, kwargs: dict, currently_me
         currently_measuring.remove(func.__name__)
         logging.error(f"Failed to start measurement: {e}")
         return func(*args, **kwargs)
-
+    # Allow time for server to setup energibridge
+    sleep(1)
     result = func(*args, **kwargs)
+    sleep(1)
     try:
         response_data = send_rpc_request("stop_measurements", params)
         pd.DataFrame(response_data).to_csv(OUTPUT_PATH / f"{exp}_{func.__name__}_{now}.csv", header=True, index=False)
@@ -91,19 +94,22 @@ async def _execute_rpc_measure_async(func: Callable, args: tuple, kwargs: dict, 
     params = {"pid": PID, "function_name": func.__name__}
     currently_measuring.add(func.__name__)
     try:
-        response_data = send_rpc_request("start_measure", params)
+        response_data = send_rpc_request("start_measurements", params)
         if response_data is False:
             raise RuntimeError("Failed to start measurement.")
     except Exception as e:
         currently_measuring.remove(func.__name__)
         logging.error(f"Failed to start measurement: {e}")
         return await func(*args, **kwargs)
-
+    
+    # Allow time for server to setup energibridge
+    sleep(1)
     result = await func(*args, **kwargs)
+    sleep(1)
 
     try:
-        response_data = send_rpc_request("stop_measure", params)
-        pd.DataFrame(response_data).to_csv(OUTPUT_PATH / exp / f"{func.__name__}_{now}.csv", header=True, index=False)
+        response_data = send_rpc_request("stop_measurements", params)
+        pd.DataFrame(response_data).to_csv(OUTPUT_PATH / f"{exp}_{func.__name__}_{now}.csv", header=True, index=False)
     except Exception as e:
         logging.error(f"Failed to stop or collect measurement: {e}")
     finally:
@@ -113,7 +119,6 @@ async def _execute_rpc_measure_async(func: Callable, args: tuple, kwargs: dict, 
 
 def send_rpc_request(method: str, params: dict) -> Any:
     """Sends a JSON-RPC request and returns the result."""
-
     response = requests.post(f"{RPC_URL}:{PORT}/", json=request_uuid(method, params))
     if response.ok is False:
         raise RuntimeError(f"Failed to send RPC request: {response.reason}")

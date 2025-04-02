@@ -171,3 +171,11 @@ Both will start the server on `http://localhost:8095`, and terminates when you p
 We provided a script to run the experiments which writes a pickle file for the results at `./py/experiments.py`
 
 Please ensure all necessary dependencies and/or build tools are installed beforehand (see above).
+
+In order to run the experiments, make sure all dependencies are installed and run the following command:
+
+```
+python experiment.py --production
+```
+
+If you want to run the experiment for less than 30 iterations, you can specify the amount of iterations using `--iterations={number of iterations to run}`.

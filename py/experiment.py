@@ -103,39 +103,9 @@ def build_servers():
         ["mv", f"{ROOT / 'cpp' / 'build' / 'bin' / 'EnergiBridge_RPC'}", f"{ROOT / 'py' / 'EnergiBridge_CPP_RPC'}"])
 
 
-if __name__ == "__main__":
-    parser = argparse.ArgumentParser()
-    parser.add_argument('-i', '--iterations', default=30, help="Number of iterations of the experiment to run. Defaults to 30.", type=int)
-    parser.add_argument('-p', '--production', action='store_true')
-    
-    args = parser.parse_args()
-    
-    prod = args.production
-    iterations = args.iterations
-    results = {}
-
-    build_servers()
-
-    # Warm up
-    print("Warming up...")
-    run_experiment("nonservice", None, 30)
-    print("Warm up done.")
-    print("Sleep for 30 seconds...")
-    sleep(30 if args.production else 1)
-    
-    instances = ["rust", "cpp", "nonservice"]
-    experiments = []
-
-    fib_ns = [10, 35, 40]
-    experiments_fib = list(itertools.product(instances,["fib"], [10, 35, 40]))
-    experiments.extend(experiments_fib)
-    sleep_s = [10,20]
-    experiments_sleep = list(itertools.product(instances,["sleep"], [10,20]))
-    experiments.extend(experiments_sleep)
-
-    print("Starting experiments...")
-    for i in range(iterations):
-        for (exp, func, n) in experiments:
+def run_experiment_loop(iters, exps, res):
+    for i in range(iters):
+        for (exp, func, n) in exps:
             server = None
 
             print(f"\tIteration {i}: running {exp} for {func} with n={n}...")
@@ -165,21 +135,58 @@ if __name__ == "__main__":
             # Reads latest csv file
             latest_csv = max(glob.glob(os.path.join(ROOT / "py", "energy_results", "*.csv")), key=os.path.getctime)
             current_result = pd.read_csv(latest_csv)
-            if func not in results:
-                results[func] = {}
-            if n not in results[func]:
-                results[func][n] = {}
-            if exp not in results[func][n]:
-                results[func][n][exp] = []
-            results[func][n][exp].append(current_result)
+            if func not in res:
+                res[func] = {}
+            if n not in res[func]:
+                res[func][n] = {}
+            if exp not in res[func][n]:
+                res[func][n][exp] = []
+            res[func][n][exp].append(current_result)
             os.remove(latest_csv)
             # print(current_result)
 
             print("\t\tSleep for 30 seconds...")
             sleep(30 if prod else 1)
-        random.shuffle(experiments)
+        random.shuffle(exps)
 
-    print("Experiment finished.")
+
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser()
+    parser.add_argument('-i', '--iterations', default=30, help="Number of iterations of the experiment to run. Defaults to 30.", type=int)
+    parser.add_argument('-p', '--production', action='store_true')
+    
+    args = parser.parse_args()
+    
+    prod = args.production
+    iterations = args.iterations
+    results = {}
+
+    build_servers()
+
+    # Warm up
+    print("Warming up...")
+    run_experiment("nonservice", None, 30)
+    print("Warm up done.")
+    print("Sleep for 30 seconds...")
+    sleep(30 if args.production else 1)
+    
+    instances = ["rust", "cpp", "nonservice"]
+
+    fib_ns = [10, 35, 40]
+    experiments_fib = list(itertools.product(instances,["fib"], [10, 35, 40]))
+    print("Starting fib experiments...")
+    run_experiment_loop(iterations,experiments_fib, results)
+
+    print("\t\tSleep for 30 seconds between fib and sleep experiments...")
+    sleep(30 if prod else 1)
+
+    sleep_s = [10,20]
+    experiments_sleep = list(itertools.product(instances,["sleep"], [10,20]))
+    print("Starting sleep experiments...")
+    run_experiment_loop(iterations, experiments_sleep, results)
+
+
+    print("Experiments finished.")
 
     # Its important to use binary mode
     file = open(ROOT / 'py' / "results.pkl", 'wb')
@@ -191,10 +198,9 @@ if __name__ == "__main__":
     os.remove(ROOT / "py" / "energibridge")
     os.remove(ROOT / "py" / "EnergiBridge_CPP_RPC")
 
-    # TODO process results
-    ## EXAMPLE use case
-    file = open(ROOT/'py'/ "results.pkl", 'rb')
-    results = pickle.load(file)
-    print(results)
-    file.close()
+    # ## EXAMPLE use case
+    # file = open(ROOT/'py'/ "results.pkl", 'rb')
+    # results = pickle.load(file)
+    # print(results)
+    # file.close()
 

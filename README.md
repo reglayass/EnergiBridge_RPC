@@ -1,6 +1,18 @@
 # EnergiBridge As A Service
 
 ## Cloning the Repository
+This repository contains **submodules** for the Rust implementation of the service. To clone, please use the following: 
+
+```bash
+git clone --recurse-submodules https://github.com/reglayass/EnergiBridge_RPC.git
+```
+
+If the submodule folder `rust_svc` is empty, please use the following the commands: 
+
+```bash
+git pull
+git submodule update --init --recursive
+```
 
 ## C++ Version
 This version requires you to have `cmake` installed. The following three lines will compile the RPC server and create an executable under `build/bin/EnergiBridge_RPC`

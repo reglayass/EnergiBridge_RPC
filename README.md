@@ -1,4 +1,8 @@
 # EnergiBridge As A Service
+## Disclaimer
+The code in this repository have been only tested to work correctly in the following OS:
+- macOS Sequoia 15.3.2
+- Pop_OS! 22.04
 
 ## Cloning the Repository
 This repository contains **submodules** for the Rust implementation of the service. To clone, please use the following: 
